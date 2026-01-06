@@ -8,6 +8,9 @@
 
 #include <p18f4620.h>
 
+#include "timer\timer.h"
+#include "interrupt\interrupt.h"
+
 #pragma config OSC		= HS
 #pragma config FCMEN	= OFF
 #pragma config IESO		= OFF
