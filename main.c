@@ -25,6 +25,10 @@ void ReverseOutput(int index);
 void main(void) {
     init_system();
     
+    LcdPrintString(0, 0, "Hello,");
+    LcdPrintString(1, 0, "Thinh!");
+    
+    delay_ms(50);
     while (1) {
         if (flag_timer0 == 1) {
             flag_timer0 = 0;
@@ -46,18 +50,22 @@ void main(void) {
 void init_system(void) {
     TRISB = 0x00;
     LED = 0x00;
-    
+
     init_interrupt();
-    
+
     init_timer0(5000);
     init_timer1(5000);
-//    init_timer2(156);
+    //    init_timer2(156);
     init_timer3(5000);
-    
+
     SetTimer0_ms(500);
     SetTimer1_ms(1000);
-//    SetTimer2_ms(2000);
+    //    SetTimer2_ms(2000);
     SetTimer3_ms(2000);
+    
+    init_lcd();
+    LcdClearS();
+    lcd_clear();
 }
 
 void delay_ms(int value) {
