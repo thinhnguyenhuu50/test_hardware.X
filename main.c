@@ -24,24 +24,25 @@ void ReverseOutput(int index);
 
 void main(void) {
     init_system();
-    
-    LcdPrintString(0, 0, "Hello,");
-    LcdPrintString(1, 0, "Thinh!");
-    
+    LcdAnimTypewriter(0, "Hello World...", 100);
+
     delay_ms(50);
     while (1) {
-        if (flag_timer0 == 1) {
-            flag_timer0 = 0;
-            ReverseOutput(0);
+        if (flag_timer0) {
+            flag_timer0 = 0; // Clear flag
+
+            LcdUpdate();
         }
 
         if (flag_timer1 == 1) {
             flag_timer1 = 0;
+            
             ReverseOutput(1);
         }
 
         if (flag_timer3 == 1) {
             flag_timer3 = 0;
+            
             ReverseOutput(2);
         }
     }
@@ -58,14 +59,14 @@ void init_system(void) {
     //    init_timer2(156);
     init_timer3(5000);
 
-    SetTimer0_ms(500);
+    SetTimer0_ms(10);
     SetTimer1_ms(1000);
     //    SetTimer2_ms(2000);
     SetTimer3_ms(2000);
-    
+
     init_lcd();
+    //    lcd_clear();
     LcdClearS();
-    lcd_clear();
 }
 
 void delay_ms(int value) {

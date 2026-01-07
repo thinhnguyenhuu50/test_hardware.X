@@ -8,6 +8,7 @@
       <itemPath>interrupt/interrupt.h</itemPath>
       <itemPath>timer/timer.h</itemPath>
       <itemPath>lcd/lcd.h</itemPath>
+      <itemPath>lcd/lcd_buffer.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -20,6 +21,7 @@
       <itemPath>interrupt/interrupt.c</itemPath>
       <itemPath>timer/timer.c</itemPath>
       <itemPath>lcd/lcd.c</itemPath>
+      <itemPath>lcd/lcd_buffer.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

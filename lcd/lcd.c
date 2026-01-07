@@ -1,426 +1,184 @@
-/*****************************************************************************
- *	P89V51 Microprocessors
- *	file name : lcdText.c	
- *	purpose : functions for lcdText
- *
- *	Copyright(C) BKIT - tdlong506(5/2009), nova(10/2014)
- *
-*****************************************************************************/
 #include "lcd.h"
-#define LCD_SCREEN_0		0
-#define LCD_SCREEN_1		1
-#define LCD_SCREEN_2            2
-#define LCD_SCREEN_3		3
-const unsigned char UserFont[8][8] = {
-  { 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 },
-  { 0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10 },
-  { 0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18 },
-  { 0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C },
-  { 0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E,0x1E },
-  { 0x1F,0x1F,0x1F,0x1F,0x1F,0x1F,0x1F,0x1F },
-  { 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 },
-  { 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 }
-};
+#include <delays.h>
 
-int current_row, current_col;
-char statusLCD = LCD_SCREEN_0;
-unsigned char LcdScreen[2][16] = {
-0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
-};
-unsigned long lcd_power_of(int A, int x);
+/*
+ * MPLAB C18 Compiler LCD Driver for PIC18F4620
+ * Cleaned and Refactored
+ */
 
-void lcd_delay(unsigned long time) {
-//	time = 6*time;
-//	while(--time);
-    int i,j;
-    for(i=0;i<time;i++)
-            for(j=0;j<5;j++);
-}
-void v_timer0(unsigned long time)
-{
-    int i,j;
-    for(i=0;i<time;i++)
-            for(j=0;j<238;j++);
-}
-void lcd_sendCommand(unsigned char cmd)	//Sends Command to LCD
-{
-	LCD_PORT&=0x0f;
-	LCD_PORT|=(cmd&0xf0);
-	LCD_PORT|=(1 << LCD_E);
-	//lcd_delay(1);
-	v_timer0(1);
+// Internal Delay Helpers (Adjust based on Fosc if needed)
+// Assuming Fosc around 4MHz to 20MHz.
+// Delay1KTCYx(x) delays for x * 1000 instruction cycles.
+// For 20MHz, 1 instr = 0.2us. 1000 instr = 200us.
 
-	LCD_PORT&=~(1 <<LCD_E);
-	v_timer0(1);
-
-	LCD_PORT&=0x0f;
-	LCD_PORT|=(cmd<<4);
-	LCD_PORT|=(1 <<LCD_E);
-	v_timer0(1);
-
-	LCD_PORT&=~(1 <<LCD_E);
-	v_timer0(1);
+void lcd_delay_ms(unsigned char ms) {
+    // delay_ms(1) at 20MHz roughly requires 5000 cycles.
+    // We will use a safe approximation loop.
+    while(ms--) {
+        Delay1KTCYx(5); // ~1ms at 20MHz, ~5ms at 4MHz (Safe for LCD)
+    }
 }
 
-void init_lcd() {
-//	int i;
-	unsigned char cmd;
-        v_timer0(25);//Wait more than 15ms after Vcc = 4.5V
-        LCD_PORT&=0x0f;
-	LCD_PORT&=0xf8;
-
-        //---------one------
-        if (LCD_DATA_4BIT_HIGH)
-        {
-            LCD_DATA_OUT(0x03<<4)
-        }
-        else
-        {
-            LCD_DATA_OUT(0x03)
-        }
-	EN(SET);
-        v_timer0(1);
-	EN(CLR);
-        v_timer0(1);
-
-        //---------two------
-	if (LCD_DATA_4BIT_HIGH)
-        {
-            LCD_DATA_OUT(0x03<<4)
-        }
-        else
-        {
-            LCD_DATA_OUT(0x03)
-        }
-	EN(SET);
-        v_timer0(1);
-	EN(CLR);
-        v_timer0(1);
-
-        //---------three------
-	if (LCD_DATA_4BIT_HIGH)
-        {
-            LCD_DATA_OUT(0x03<<4)
-        }
-        else
-        {
-            LCD_DATA_OUT(0x03)
-        }
-	EN(SET);
-        v_timer0(1);
-	EN(CLR);
-        v_timer0(1);
-
-        //---------four------
-	if (LCD_DATA_4BIT_HIGH)
-        {
-            LCD_DATA_OUT(0x02<<4)
-        }
-        else
-        {
-            LCD_DATA_OUT(0x02)
-        }
-	EN(SET);
-        v_timer0(1);
-	EN(CLR);
-        v_timer0(1);
-
-        //--------4 bit--dual line---------------
-	lcd_sendCommand(0x28);
-        //-----increment address, invisible cursor shift------
-	lcd_sendCommand(0x0c);	
-}
-/*=================================================*/
-/* ham kiem tra trang thai thuc thi lenh cua LCD */
-unsigned char lcd_read_status() {
-	unsigned char status = 0x00;
-	unsigned char status_bitHigh = 0x00;
-	
-	RS(CMD);
-	//RW(READ);
-	lcd_delay(15);
-	LCD_DIR_IN;
-	EN(SET);
-		lcd_delay(15);		
-		status_bitHigh = LCD_DATA_IN;
-	EN(CLR);
-	lcd_delay(15);
-	LCD_DIR_IN;
-	EN(SET);		
-		lcd_delay(15);		
-		status = LCD_DATA_IN;
-		//status >>= 4;
-		status |= status_bitHigh;
-	EN(CLR);
-	lcd_delay(1);
-	return status;
+void lcd_delay_us(unsigned char us) {
+    // LCD needs short pulses. 
+    // Delay10TCYx(1) is 10 cycles. 
+    Delay10TCYx(us); 
 }
 
-/*=================================================*/
-unsigned char lcd_wait_busy() {
-	unsigned char retValue = 0x00;
-	do {
-		retValue = lcd_read_status();
-	} while(retValue & 0x80);
-	return retValue;
+void lcd_pulse_enable(void) {
+    LCD_EN = 1;
+    lcd_delay_us(5); // Enable pulse width > 450ns
+    LCD_EN = 0;
+    lcd_delay_us(5); // Hold time
 }
 
-/*=================================================*/
-/*=================================================*/
-/* send 4bits data from MCU to LCD */
-void lcd_write_4bits(unsigned char dat) {	
-	//RW(WRITE);
-        LCD_DATA_OUT(dat);
-	EN(SET);
-        lcd_delay(5);
-	EN(CLR);
-        lcd_delay(5);
+/* * Writes a nibble (4 bits) to the LCD data pins.
+ * Handles the masking of the port to preserve other pins on PORTB.
+ */
+void lcd_write_nibble(unsigned char nibble) {
+    // Clear the data bits (RB4-RB7)
+    LCD_LAT &= 0x0F; 
+    // Set the data bits (Shift nibble to upper 4 bits)
+    LCD_LAT |= (nibble & 0xF0);
+    
+    lcd_pulse_enable();
 }
 
-/*=================================================*/
-/* ham goi lenh thuc thi den LCD */
-void lcd_write_cmd(unsigned char cmd){
-	
-	//lcd_wait_busy();
-	RS(CMD);
-        lcd_delay(5);
-	if (LCD_DATA_4BIT_HIGH)
-	{
-		lcd_write_4bits(cmd);
-		lcd_write_4bits(cmd<<4);
-	}
-	else
-	{
-		lcd_write_4bits(cmd>>4);
-		lcd_write_4bits(cmd);
-	}
+/*
+ * Sends a command byte to the LCD
+ * Handles splitting byte into two nibbles
+ */
+void lcd_write_cmd(unsigned char cmd) {
+    LCD_RS = 0; // Select Command Register
+    
+    // High Nibble
+    lcd_write_nibble(cmd & 0xF0);
+    
+    // Low Nibble (Shifted to upper position for the port)
+    lcd_write_nibble(cmd << 4);
+    
+    // Delays based on command type
+    if((cmd == 0x01) || (cmd == 0x02)) {
+        lcd_delay_ms(2); // Clear Display and Return Home need > 1.52ms
+    } else {
+        lcd_delay_us(5); // Others need > 37us
+    }
 }
 
-/* ham goi data den LCD */
+/*
+ * Sends data (character) to the LCD
+ */
 void lcd_write_data(unsigned char data) {
-        //lcd_wait_busy();
-	RS(DAT);
-        lcd_delay(5);
-	if (LCD_DATA_4BIT_HIGH)
-	{
-		lcd_write_4bits(data);
-		lcd_write_4bits(data<<4);
-	}
-	else
-	{
-		lcd_write_4bits(data>>4);
-		lcd_write_4bits(data);
-	}
-        RS(CMD);
+    LCD_RS = 1; // Select Data Register
+    
+    // High Nibble
+    lcd_write_nibble(data & 0xF0);
+    
+    // Low Nibble
+    lcd_write_nibble(data << 4);
+    
+    lcd_delay_us(5); // Write execution time > 37us
 }
 
-void lcd_putchar (char c)
-{ 
-  lcd_write_data (c);
+/*
+ * Initialization Sequence (4-bit mode)
+ * Follows HD44780 datasheet strictly
+ */
+void init_lcd(void) {
+    // Set Data direction to Output
+    LCD_TRIS &= 0x0F; // RB4-RB7 as Output
+    LCD_TRIS_RS = 0;
+    LCD_TRIS_EN = 0;
+    
+    LCD_RS = 0;
+    LCD_EN = 0;
+    LCD_LAT &= 0x0F; // Clear data lines
+
+    // Power-on delay > 15ms
+    lcd_delay_ms(20);
+
+    // Sequence to enter 4-bit mode
+    // 1. Send 0x03
+    lcd_write_nibble(0x30);
+    lcd_delay_ms(5); // Wait > 4.1ms
+
+    // 2. Send 0x03 again
+    lcd_write_nibble(0x30);
+    lcd_delay_us(15); // Wait > 100us
+
+    // 3. Send 0x03 again
+    lcd_write_nibble(0x30);
+    lcd_delay_us(15); 
+
+    // 4. Set 4-bit mode (Send 0x02)
+    lcd_write_nibble(0x20);
+    lcd_delay_us(15);
+
+    // Interface is now 4-bit. Configure display:
+    lcd_write_cmd(0x28); // Function Set: 4-bit, 2 lines, 5x8 font
+    lcd_write_cmd(0x0C); // Display ON, Cursor OFF, Blink OFF
+    lcd_write_cmd(0x06); // Entry Mode: Increment, No Shift
+    lcd_write_cmd(0x01); // Clear Display
+    lcd_delay_ms(2);     // Wait for clear
 }
 
-void lcd_print_char (char c)
-{ 
-  lcd_write_data (c);
-}
-/*******************************************************************************
-* Print sting to LCD display                                                   *
-*   Parameter:    string: pointer to output string                             *
-*   Return:                                                                    *
-*******************************************************************************/
-
-void lcd_print_str (const rom unsigned char *string)
-{
-  while (*string)  {
-    lcd_print_char (*string++);
-  }
+/* Helper wrappers */
+void lcd_putchar(char c) {
+    lcd_write_data(c);
 }
 
-void lcd_set_cursor (unsigned char row, unsigned char column)
-{
-  unsigned char address;
-
-  address = (row%2 * 0x40) + column%16;
-  address = 0x80 + (address & 0x7F);
-  lcd_write_cmd(address);               /* Set DDRAM address counter to 0     */											  
+void lcd_print_char(char c) {
+    lcd_write_data(c);
 }
 
-void lcd_clear (void)
-{
-  lcd_write_cmd(0x01);                  /* Display clear                      */
-  lcd_set_cursor (0, 0);
+void lcd_print_str(const rom char *str) {
+    while (*str) {
+        lcd_write_data(*str++);
+    }
 }
-/*=================================================*/
-unsigned long lcd_power_of(int A, int x) {
-    char i;
-    unsigned long temp = 1;
-    for(i = 0; i < x; i++)
-            temp *= A;
-    return temp;
+
+void lcd_set_cursor(unsigned char row, unsigned char col) {
+    unsigned char address;
+    
+    if (row == 0)
+        address = 0x80 + col;
+    else
+        address = 0xC0 + col; // 0xC0 is start of 2nd line for most 16x2
+        
+    lcd_write_cmd(address);
 }
+
+void lcd_clear(void) {
+    lcd_write_cmd(0x01);
+    lcd_delay_ms(2);
+}
+
+/* * Optimized number printing 
+ * Replaces the recursive/power functions for better stack usage
+ */
 void lcd_print_num(long num) {
-    char num_flag = 0;
-    char i;
-
-    if(num == 0) {
-            lcd_print_char('0');
-            return;
+    char buffer[12]; // Long can be -2147483648 (11 chars + null)
+    unsigned char i = 0;
+    unsigned char j;
+    
+    if (num == 0) {
+        lcd_write_data('0');
+        return;
     }
-    if(num < 0) {
-            lcd_print_char('-');
-            num *= -1;
+    
+    if (num < 0) {
+        lcd_write_data('-');
+        num = -num;
     }
-    //else
-    //	lcd_print_char(' ');
-
-    for(i = 7; i > 0; i--) {
-            if((num / lcd_power_of(10, i-1)) != 0) {
-                    num_flag = 1;
-                    lcd_print_char(num/lcd_power_of(10, i-1) + '0');
-            }
-            else {
-                    if(num_flag != 0)
-                            lcd_print_char('0');
-            }
-            num %= lcd_power_of(10, i-1);
+    
+    // Extract digits in reverse order
+    while (num > 0) {
+        buffer[i++] = (num % 10) + '0';
+        num /= 10;
     }
-}
-void LcdPrintNum(unsigned char x, unsigned char y, long num)
-{
-	lcd_set_cursor(x,y);
-	lcd_print_num(num);
-}
-void LcdPrintString(unsigned char x, unsigned char y, unsigned char * string)
-{
-	lcd_set_cursor(x,y);
-	lcd_print_str(string);
-}
-
-void lcd_print_charS(unsigned char c)
-{
-    LcdScreen[current_row][ current_col] = c;
-    current_col ++;
-}
-
-void LcdClearS()
-{
-    char i;
-    for (i = 0; i<16; i++)
-    {
-        LcdScreen[0][i] = '  ';
-        LcdScreen[1][i] = '  ';
+    
+    // Print in correct order
+    for (j = i; j > 0; j--) {
+        lcd_write_data(buffer[j-1]);
     }
 }
-void DisplayLcdScreen()
-{
-    unsigned char i;
-    switch (statusLCD)
-    {
-        case LCD_SCREEN_0:
-            lcd_set_cursor (0,0);
-            for (i = 0; i<8; i++)
-                lcd_print_char(LcdScreen[0][i]);
-            statusLCD = LCD_SCREEN_1;
-            break;
-         case LCD_SCREEN_1:
-            lcd_set_cursor (0,8);
-            for (i = 0; i<8; i++)
-                lcd_print_char(LcdScreen[0][8 + i]);
-            statusLCD = LCD_SCREEN_2;
-            break;
-         case LCD_SCREEN_2:
-            lcd_set_cursor (1,0);
-            for (i = 0; i<8; i++)
-                lcd_print_char(LcdScreen[1][i]);
-            statusLCD = LCD_SCREEN_3;
-            break;
-         case LCD_SCREEN_3:
-            lcd_set_cursor (1,8);
-            for (i = 0; i<8; i++)
-                lcd_print_char(LcdScreen[1][8 + i]);
-            statusLCD = LCD_SCREEN_0;
-            break;
-        default:
-            statusLCD = LCD_SCREEN_0;
-            break;
-    }
-}
-void DisplayLcdScreen2()
-{
-    unsigned char i;
-    switch (statusLCD)
-    {
-        case LCD_SCREEN_0:
-            lcd_set_cursor (0,0);
-            for (i = 0; i<16; i++)
-                lcd_print_char(LcdScreen[0][i]);
-            statusLCD = LCD_SCREEN_1;
-            break;
-        case LCD_SCREEN_1:
-            lcd_set_cursor (1,0);
-            for (i = 0; i<16; i++)
-                lcd_print_char(LcdScreen[1][i]);
-            statusLCD = LCD_SCREEN_0;
-            break;
-        default:
-            statusLCD = LCD_SCREEN_0;
-            break;
-    }
-}
-void DisplayLcdScreenOld()
-{
-    unsigned char i;
-    lcd_set_cursor (0,0);
-    for (i = 0; i<16; i++)
-        lcd_print_char(LcdScreen[0][i]);
-        //lcd_print_char(~'B');
-    lcd_set_cursor (1,0);
-    for (i = 0; i<16; i++)
-        lcd_print_char(LcdScreen[1][i]);
-}
-void LcdPrintCharS(unsigned char x, unsigned char y,unsigned char c)
-{
-    current_row = x%2;
-    current_col = y%16;
-    LcdScreen[current_row][ current_col] = c;
-}
-
-void LcdPrintNumS(unsigned char x, unsigned char y, long num)
-{
-    char num_flag = 0;
-    char i;
-    current_row = x%2;
-    current_col = y%16;
-
-    if(num == 0) {
-            lcd_print_charS('0');
-            return;
-    }
-    if(num < 0) {
-            lcd_print_charS('-');
-            num *= -1;
-    }
-    //else
-    //	lcd_print_charS(' ');
-
-    for(i = 7; i > 0; i--) {
-            if((num / lcd_power_of(10, i-1)) != 0) {
-                    num_flag = 1;
-                    lcd_print_charS(num/lcd_power_of(10, i-1) + '0');
-            }
-            else {
-                    if(num_flag != 0)
-                            lcd_print_charS('0');
-            }
-            num %= lcd_power_of(10, i-1);
-    }
-}
-void LcdPrintStringS(unsigned char x, unsigned char y, const rom unsigned char *string)
-{
-    current_row = x%2;
-    current_col = y%16;
-    while (*string)  {
-    lcd_print_charS (*string++);}
-}
-

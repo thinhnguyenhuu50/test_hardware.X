@@ -10,7 +10,7 @@
 
 #include "timer\timer.h"
 #include "interrupt\interrupt.h"
-#include "lcd\lcd.h"
+#include "lcd\lcd_buffer.h"
 
 #pragma config OSC		= HS
 #pragma config FCMEN	= OFF
